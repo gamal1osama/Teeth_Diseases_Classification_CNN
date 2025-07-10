@@ -1,102 +1,3 @@
-###################  scaratch ################################
-import numpy as np
-import seaborn as sns # type: ignore
-import matplotlib.pyplot as plt # type: ignore
-import pandas as pd # type: ignore
-
-
-import pickle
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.utils import plot_model
-from sklearn.metrics import classification_report # type: ignore
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay # type: ignore
-
-from PIL import Image
-
-
-import os
-import random
-
-
-import warnings
-warnings.filterwarnings("ignore")
-#################################### VGG16 ###############################################
-
-import numpy as np
-import seaborn as sns # type: ignore
-import matplotlib.pyplot as plt # type: ignore
-import pandas as pd
-
-
-import pickle
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.applications import VGG16
-from tensorflow.keras.utils import plot_model
-
-from sklearn.metrics import classification_report # type: ignore
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay # type: ignore
-
-
-from PIL import Image
-
-
-import os
-import random
-
-
-import warnings
-warnings.filterwarnings("ignore")
-
-######################################## Xception #########################
-
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt # type: ignore
-import pandas as pd # type: ignore
-
-
-import pickle
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.applications import Xception
-from tensorflow.keras.utils import plot_model
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-
-from PIL import Image
-
-
-import os
-import random
-
-
-import warnings
-warnings.filterwarnings("ignore")
-
-
-
-############################################################################################
 import streamlit as st
 import numpy as np
 import os
@@ -112,10 +13,62 @@ BACKGROUND_PATH = './Deployment/background.jpeg'
 CLASS_NAMES = ['CaS', 'CoS', 'Gum', 'MC', 'OC', 'OLP', 'OT']
 TARGET_SIZE = (150, 150)
 
+# --- Detailed Descriptions for Each Disease ---
+DISEASE_EXPLANATIONS = {
+    'CaS': (
+        "🦷 **Caries Surface (CaS):**\n"
+        "Dental caries on the tooth surface cause localized demineralization of enamel due to bacterial acids.\n"
+        "If untreated, this can progress to dentin and pulp, leading to pain and infection.\n"
+        "Early detection is crucial to avoid cavities and tooth loss.\n"
+        "Common symptoms include discoloration, roughness, and sensitivity."
+    ),
+    'CoS': (
+        "🦷 **Caries Occlusal Surface (CoS):**\n"
+        "Decay affecting the chewing surfaces of molars and premolars, often in deep grooves.\n"
+        "These areas are prone to trapping food and bacteria, leading to rapid cavity formation.\n"
+        "Early treatment can prevent progression to severe tooth damage.\n"
+        "Watch for dark spots, holes, or pain when chewing."
+    ),
+    'Gum': (
+        "🪥 **Gum Disease (Periodontitis):**\n"
+        "A serious gum infection that damages the soft tissue and destroys the bone supporting teeth.\n"
+        "It is often caused by poor oral hygiene and plaque buildup.\n"
+        "Symptoms include bleeding gums, bad breath, and loose teeth.\n"
+        "Professional care is needed to prevent tooth loss and systemic effects."
+    ),
+    'MC': (
+        "👄 **Mucosal Condition (MC):**\n"
+        "Inflammation or changes in the lining of the mouth (oral mucosa).\n"
+        "Causes can include trauma, infections, allergies, or systemic diseases.\n"
+        "May present as redness, ulcers, swelling, or white patches.\n"
+        "Monitoring and appropriate treatment can prevent complications."
+    ),
+    'OC': (
+        "⚠️ **Oral Cancer (OC):**\n"
+        "A malignant growth in the oral cavity that requires early detection for successful treatment.\n"
+        "Risk factors include tobacco use, alcohol, and HPV infection.\n"
+        "Common signs are non-healing ulcers, lumps, or persistent pain.\n"
+        "Regular screening and biopsies are key to diagnosis and prevention."
+    ),
+    'OLP': (
+        "📄 **Oral Lichen Planus (OLP):**\n"
+        "A chronic inflammatory condition affecting the inner lining of the mouth.\n"
+        "It may appear as white, lacy patches or painful sores.\n"
+        "The cause is unknown but linked to immune system dysfunction.\n"
+        "Management includes monitoring and symptom relief to prevent flare-ups."
+    ),
+    'OT': (
+        "🔍 **Other Tooth Conditions (OT):**\n"
+        "This category includes various non-specific dental issues like enamel defects or wear.\n"
+        "Symptoms vary and may involve sensitivity, discoloration, or structural changes.\n"
+        "A dental exam is recommended to identify the cause.\n"
+        "Proper oral care and timely intervention can prevent worsening."
+    )
+}
+
 # --- Custom CSS Styles ---
 st.markdown("""
 <style>
-/* Main background and containers */
 .stApp {
     background-color: #0e1117;
 }
@@ -134,8 +87,6 @@ st.markdown("""
     margin: 15px 0;
     border-left: 4px solid #4CAF50;
 }
-
-/* Text styles */
 .title {
     color: white;
     text-align: center;
@@ -157,8 +108,13 @@ st.markdown("""
     color: #4CAF50;
     font-weight: bold;
 }
-
-/* Probability items */
+.description {
+    color: #CCCCCC;
+    font-size: 1rem;
+    margin-top: 10px;
+    font-style: italic;
+    white-space: pre-wrap;
+}
 .probability-row {
     display: flex;
     justify-content: space-between;
@@ -177,43 +133,26 @@ st.markdown("""
     font-size: 1.1rem;
 }
 
-/* Dark style for expander (open and closed) */
-details summary {
-    background-color: rgba(30, 30, 30, 0.9) !important;
-    color: #4CAF50 !important;
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-details summary:hover {
-    background-color: rgba(50, 50, 50, 0.9) !important;
-}
-details[open] > *:not(summary) {
+/* Dark expander style */
+div[data-testid="stExpander"] > details {
     background-color: rgba(30, 30, 30, 0.9);
+    border: 1px solid #4CAF50;
     border-radius: 10px;
-    padding: 15px;
-    margin-top: -10px;
-    color: white;
 }
-
-/* Center and style uploader label */
-section[data-testid="stFileUploader"] > label {
-    display: block;
-    text-align: center;
-    font-size: 1.3rem;
-    color: white;
+div[data-testid="stExpander"] summary {
+    color: #4CAF50;
     font-weight: bold;
-    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+div[data-testid="stExpander"] summary:hover {
+    background-color: rgba(50, 50, 50, 0.9);
 }
 </style>
 """, unsafe_allow_html=True)
 
 # --- Page Setup ---
 st.set_page_config(
-    page_title="Dental Disease Classifier ",
+    page_title="Dental Disease Classifier",
     page_icon="🦷",
     layout="centered"
 )
@@ -261,14 +200,14 @@ model = load_my_model()
 with st.container():
     st.markdown("""
     <div class="main-container">
-        <h1 class="title">Dental Disease Classifier </h1>
+        <h1 class="title">Dental Disease Classifier</h1>
         <h2 class="subtitle">AI-Powered Diagnosis System</h2>
     </div>
     """, unsafe_allow_html=True)
 
-# --- File Uploader (Centered Label) ---
+# --- File Uploader ---
 uploaded_file = st.file_uploader(
-    "Upload Tooth Image (JPG, JPEG, PNG)",  # 👈 Label now styled and centered
+    "Upload Tooth Image (JPG, JPEG, PNG)",
     type=["jpg", "jpeg", "png"],
     key="file_uploader"
 )
@@ -277,16 +216,16 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     with st.spinner('Analyzing...'):
         try:
-            # Preprocess image
             img = image.load_img(uploaded_file, target_size=TARGET_SIZE)
             img_array = image.img_to_array(img)
             img_array = preprocess_input(img_array)
             img_array = np.expand_dims(img_array, axis=0)
 
-            # Predict
             prediction = model.predict(img_array)
-            predicted_class = np.argmax(prediction, axis=1)[0]
+            predicted_class_idx = np.argmax(prediction, axis=1)[0]
+            predicted_class = CLASS_NAMES[predicted_class_idx]
             confidence = np.max(prediction) * 100
+            description = DISEASE_EXPLANATIONS.get(predicted_class, "No description available.")
 
             # Display Results
             with st.container():
@@ -295,7 +234,6 @@ if uploaded_file:
                     <h2 style="color: white; text-align: center;">Analysis Results</h2>
                 """, unsafe_allow_html=True)
 
-                # Image and Prediction in columns
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     st.image(img, caption="Uploaded Image", width=250)
@@ -303,12 +241,12 @@ if uploaded_file:
                 with col2:
                     st.markdown(f"""
                     <div class="results-box">
-                        <p class="result-text"><b>Prediction:</b> <span class="highlight">{CLASS_NAMES[predicted_class]}</span></p>
+                        <p class="result-text"><b>Prediction:</b> <span class="highlight">{predicted_class}</span></p>
                         <p class="result-text"><b>Confidence:</b> <span class="highlight">{confidence:.2f}%</span></p>
+                        <p class="description">{description}</p>
                     </div>
                     """, unsafe_allow_html=True)
 
-                # Detailed Probabilities
                 with st.expander("Detailed Probabilities", expanded=True):
                     for name, prob in zip(CLASS_NAMES, prediction[0]):
                         st.markdown(f"""
